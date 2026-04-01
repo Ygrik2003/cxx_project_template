@@ -22,9 +22,6 @@ target_include_directories(
         >
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(
-    template
-    PRIVATE SDL3::SDL3-shared Vulkan::Vulkan template::base
-)
+target_link_libraries(template PRIVATE SDL3::SDL3-shared template::base)
 
 add_library(template::template ALIAS template)

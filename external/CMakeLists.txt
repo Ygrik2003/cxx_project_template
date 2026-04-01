@@ -1,0 +1,10 @@
+find_package(SDL3 GLOBAL)
+
+if(NOT SDL3_FOUND OR TEMPLATE_DEBUG_3RDPARTY)
+    set(SDL_STATIC OFF)
+    set(SDL_SHARED ON)
+    set(SDL_TESTS OFF)
+    set(SDL_WAYLAND ON)
+    set(SDL_DISABLE_INSTALL ON)
+    add_subdirectory(SDL EXCLUDE_FROM_ALL SYSTEM)
+endif()

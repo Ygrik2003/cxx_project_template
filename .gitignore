@@ -1,4 +1,10 @@
+# CMake 
+.build/
+.install/
+
+# clangd
+.cache/
 compile_commands.json
 
-.build/
-.cache/
+# Python
+*.pyc
