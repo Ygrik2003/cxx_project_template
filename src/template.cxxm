@@ -5,6 +5,8 @@ module;
 #include <vulkan/vulkan.h>
 
 #include <cstdlib>
+
+#include "version.hxx"
 export module engine;
 export import std;
 
@@ -33,17 +35,77 @@ namespace tlt::window
 class window_impl
 {
 public:
-    window_impl(std::string title, int width, int height);
+    window_impl(std::string title, int w, int h)
+        : title(std::move(title))
+        , width(w)
+        , height(h)
+    {
+        title += ' ';
+        title += constants::project::version::full;
+
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+        {
+            std::cout << "Cant init SDL: " << SDL_GetError() << std::endl;
+        }
+    }
     window_impl(const window_impl&) = delete;
     ~window_impl() { close(); };
 
-    [[nodiscard]] bool create() noexcept;
-    void               close() noexcept;
+    [[nodiscard]] bool create() noexcept
+    {
+        SDL_CreateWindowAndRenderer(title.c_str(),
+                                    width,
+                                    height,
+                                    SDL_WINDOW_RESIZABLE,
+                                    &window,
+                                    &renderer);
+        if (window && renderer)
+        {
+            running = true;
+            std::cout << "Window created" << std::endl;
+        }
+        else
+        {
+            std::cout << "Cant create window:" << SDL_GetError() << std::endl;
+        }
+        return running;
+    }
+    void close() noexcept
+    {
+        SDL_DestroyWindow(window);
+        SDL_DestroyRenderer(renderer);
+        window   = nullptr;
+        renderer = nullptr;
+        running  = false;
 
-    void poll_event() noexcept;
-    void render() noexcept;
+        SDL_Quit();
+    }
 
-    [[nodiscard]] bool is_running() const noexcept;
+    void poll_event() noexcept
+    {
+        SDL_Event event;
+
+        while (SDL_PollEvent(&event))
+        {
+            switch (event.type)
+            {
+                case SDL_EVENT_QUIT:
+                    close();
+                    break;
+                case SDL_EVENT_KEY_DOWN:
+                    std::cout
+                        << tlt::input::keycode_to_name(
+                               static_cast<tlt::input::keycode>(event.key.key))
+                        << std::flush;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    void render() noexcept { SDL_RenderPresent(renderer); }
+
+    [[nodiscard]] bool is_running() const noexcept { return running; }
 
 private:
     SDL_Window*   window   = nullptr;

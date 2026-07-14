@@ -1,74 +1,27 @@
 {
     "$schema": "https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json",
-    "version": 10,
+    "version": 11,
     "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 31,
-        "patch": 6
+        "major": 4,
+        "minor": 3,
+        "patch": 3
     },
     "configurePresets": [
         {
             "name": "base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/.build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
-                "CMAKE_UNITY_BUILD": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "CMAKE_UNITY_BUILD_BATCH_SIZE": {
-                    "type": "STRING",
-                    "value": "32"
-                },
-                "CMAKE_CONFIGURATION_TYPES": {
-                    "type": "STRING",
-                    "value": "Debug;Release;RelWithDebInfo;MinSizeRel;"
-                },
-                "CMAKE_C_COMPILER": {
-                    "type": "STRING",
-                    "value": "clang"
-                },
-                "CMAKE_CXX_COMPILER": {
-                    "type": "STRING",
-                    "value": "clang++"
-                },
-                "CMAKE_C_COMPILER_TARGET": {
-                    "type": "STRING",
-                    "value": "x86_64-pc-linux-gnu"
-                },
-                "CMAKE_CXX_COMPILER_TARGET": {
-                    "type": "STRING",
-                    "value": "x86_64-pc-linux-gnu"
-                }
-            }
-        }
-    ],
-    "buildPresets": [
+            "hidden": true
+        },
         {
-            "name": "base-Debug",
-            "configurePreset": "base",
-            "configuration": "Debug"
-        }
-    ],
-    "testPresets": [],
-    "packagePresets": [],
-    "workflowPresets": [
+            "name": "clang-linux",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/clang-linux.cmake"
+        },
         {
-            "name": "base-Debug",
-            "steps": [
-                {
-                    "type": "configure",
-                    "name": "base"
-                },
-                {
-                    "type": "build",
-                    "name": "base-Debug"
-                }
-            ]
+            "name": "gcc-linux",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/gcc-linux.cmake"
         }
     ]
 }

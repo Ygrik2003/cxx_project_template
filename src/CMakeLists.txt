@@ -9,7 +9,6 @@ add_library(template)
 target_sources(
     template
     PUBLIC FILE_SET template_module TYPE CXX_MODULES FILES template.cxxm
-    PRIVATE template.cxx
 )
 
 target_include_directories(

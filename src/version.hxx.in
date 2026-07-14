@@ -1,9 +1,17 @@
-#pragma once
+module tlt.constants.version;
 
-// clang-format off
-#define PROJECT_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
-#define PROJECT_VERSION_MINOR @PROJECT_VERSION_MINOR@
-#define PROJECT_VERSION_PATCH @PROJECT_VERSION_PATCH@
-#define PROJECT_VERSION_TWEAK @PROJECT_VERSION_TWEAK@
-#define PROJECT_VERSION "@PROJECT_VERSION@"
+import <string_view>;
+
+namespace tlt::constants
+{
+namespace project::version
+{
+constexpr std::string_view major = "@PROJECT_VERSION_MAJOR@";
+constexpr std::string_view minor = "@PROJECT_VERSION_MINOR@";
+constexpr std::string_view patch = "@PROJECT_VERSION_PATCH@";
+constexpr std::string_view tweak = "@PROJECT_VERSION_TWEAK@";
+constexpr std::string_view full  = "@PROJECT_VERSION@";
+} // namespace project::version
+} // namespace tlt::constants
+
 // clang-format on
