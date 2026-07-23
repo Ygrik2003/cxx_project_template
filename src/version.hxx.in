@@ -1,17 +1,16 @@
-module tlt.constants.version;
-
-import <string_view>;
+#pragma once
+#include <string_view>
 
 namespace tlt::constants
 {
 namespace project::version
 {
+// clang-format off
 constexpr std::string_view major = "@PROJECT_VERSION_MAJOR@";
 constexpr std::string_view minor = "@PROJECT_VERSION_MINOR@";
 constexpr std::string_view patch = "@PROJECT_VERSION_PATCH@";
 constexpr std::string_view tweak = "@PROJECT_VERSION_TWEAK@";
 constexpr std::string_view full  = "@PROJECT_VERSION@";
+// clang-format on
 } // namespace project::version
 } // namespace tlt::constants
-
-// clang-format on

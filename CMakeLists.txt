@@ -1,42 +1,25 @@
-cmake_minimum_required(VERSION 4.3.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.4 FATAL_ERROR)
 
 project(
     template
     VERSION 0.0.1.0
     DESCRIPTION "blah blah blah"
-    HOMEPAGE_URL "http://localhost"
+    HOMEPAGE_URL "http://localhost:8080"
     LANGUAGES C CXX
 )
+
+if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+  message(
+    FATAL_ERROR
+      "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there."
+  )
+endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 find_package(options REQUIRED)
-
-add_library(template_base INTERFACE)
-target_compile_definitions(
-    template_base
-    INTERFACE $<$<PLATFORM_ID:Linux>:TEMPLATE_LINUX>
-)
-target_compile_options(
-    template_base
-    INTERFACE
-        -Werror
-        -Wpedantic
-        -Wall
-        $<$<BOOL:${TEMPLATE_COVERAGE}>:
-        -fprofile-instr-generate
-        -fcoverage-mapping
-        >
-)
-target_link_options(
-    template_base
-    INTERFACE
-        $<$<BOOL:${TEMPLATE_COVERAGE}>:
-        -fprofile-instr-generate
-        -fcoverage-mapping
-        >
-)
-add_library(template::base ALIAS template_base)
+find_package(functions REQUIRED)
+find_package(base REQUIRED)
 
 add_subdirectory(external)
 add_subdirectory(src)

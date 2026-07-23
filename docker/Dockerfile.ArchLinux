@@ -1,3 +1,13 @@
-FROM archlinux:latest
+FROM archlinux:latest as archlinux-nodeps
 
-RUN pacman -Suy --noconfirm cmake clang ninja mold libc++ sdl3
+RUN pacman -Suy --noconfirm \
+    cmake \
+    clang \
+    ninja \
+    mold \
+    libc++
+
+FROM archlinux-base AS archlinux-withdeps
+
+RUN pacman -Suy --noconfirm \
+    sdl3

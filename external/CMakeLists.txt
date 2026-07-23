@@ -1,10 +1,32 @@
-find_package(SDL3 GLOBAL)
+include(${CMAKE_SOURCE_DIR}/cmake/CPM.cmake)
 
-if(NOT SDL3_FOUND OR TEMPLATE_DEBUG_3RDPARTY)
-    set(SDL_STATIC OFF)
-    set(SDL_SHARED ON)
-    set(SDL_TESTS OFF)
-    set(SDL_WAYLAND ON)
-    set(SDL_DISABLE_INSTALL ON)
-    add_subdirectory(SDL EXCLUDE_FROM_ALL SYSTEM)
-endif()
+set(CPM_USE_LOCAL_PACKAGES ON)
+
+CPMAddPackage(
+    NAME SDL3
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG release-3.4.12
+
+    OPTIONS
+        "SDL_STATIC OFF"
+        "SDL_SHARED ON"
+        "SDL_TESTS OFF"
+        "SDL_WAYLAND ON"
+        "SDL_DISABLE_INSTALL ON"
+
+    FIND_PACKAGE_ARGUMENTS GLOBAL
+)
+
+# CPMAddPackage(
+#     NAME json
+#     GITHUB_REPOSITORY nlohmann/json
+#     VERSION 3.12.0
+#     FIND_PACKAGE_ARGUMENTS GLOBAL
+# )
+
+# CPMAddPackage(
+#     NAME fmt
+#     GITHUB_REPOSITORY fmtlib/fmt
+#     VERSION 11.2.0
+#     FIND_PACKAGE_ARGUMENTS GLOBAL
+# )
