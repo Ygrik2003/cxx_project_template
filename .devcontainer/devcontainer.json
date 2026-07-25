@@ -1,11 +1,7 @@
 {
-	"name": "Arch Linux Dev Container no deps",
-
-	// Sets the run context to one level up instead of the .devcontainer folder.
-	"context": "..",
-
+	"name": "Arch Linux Dev Container",
 	"build": {
-		"dockerFile": "../docker/Dockerfile.ArchLinux",
+		"dockerfile": "../docker/Dockerfile.ArchLinux",
 		"target": "${localEnv:TLT_DEVCONTAINER_TARGET}"
 	},
 	"customizations": {
@@ -15,20 +11,30 @@
 				"ms-vscode.cmake-tools"
 			]
 		}
-	}
-
+	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
-
-	// Uncomment the next line to run commands after the container is created - for example installing curl.
-	// "postCreateCommand": "apt-get update && apt-get install -y curl",
-
-	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust
-	// "runArgs": []
-
-	// Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker.
-	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
-
-	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
-	// "remoteUser": "vscode"
+	"runArgs": [
+		// Hardware GL/Vulkan via the host DRM devices.
+		"--device=/dev/dri",
+		// X11 MIT-SHM and Mesa shared buffers need the host IPC namespace.
+		"--ipc=host"
+	],
+	"mounts": [
+		// Wayland compositor socket. XDG_RUNTIME_DIR inside the container is
+		// remapped to a fixed path so nothing depends on the numeric uid.
+		"source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=/tmp/xdg-runtime/${localEnv:WAYLAND_DISPLAY},type=bind",
+		// X11 (Xwayland) sockets, used when SDL_VIDEODRIVER=x11.
+		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+	],
+	"containerEnv": {
+		"XDG_RUNTIME_DIR": "/tmp/xdg-runtime",
+		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"XDG_SESSION_TYPE": "wayland"
+		// SDL_VIDEODRIVER is deliberately unset: SDL autodetects wayland first
+		// and falls back to x11. Override per-run to force a backend.
+	},
+	"remoteUser": "dev",
+	"postCreateCommand": "sudo chown dev /tmp/xdg-runtime && sudo chmod 700 /tmp/xdg-runtime"
 }

@@ -1,13 +1,63 @@
-FROM archlinux:latest as archlinux-nodeps
+# archlinux-nodeps carries the full GUI/GPU runtime as well: in this target SDL3
+# is compiled from source by CPM, so it needs the very same libraries (and their
+# headers, which Arch ships in the main packages) that the sdl3 package pulls in.
+FROM archlinux:latest AS archlinux-nodeps
 
+# Toolchain
 RUN pacman -Suy --noconfirm \
     cmake \
     clang \
+    gcc \
     ninja \
     mold \
-    libc++
+    libc++ \
+    git \
+    sudo \
+    pkgconf
 
-FROM archlinux-base AS archlinux-withdeps
+# GUI/GPU runtime for SDL3: wayland, x11, GL/Vulkan, audio, input
+RUN pacman -Suy --noconfirm \
+    wayland \
+    wayland-protocols \
+    libxkbcommon \
+    libdecor \
+    libx11 \
+    libxext \
+    libxcursor \
+    libxi \
+    libxrandr \
+    libxfixes \
+    libxss \
+    libxtst \
+    libxrender \
+    libxkbcommon-x11 \
+    mesa \
+    libglvnd \
+    libdrm \
+    vulkan-icd-loader \
+    vulkan-intel \
+    pipewire \
+    alsa-lib \
+    dbus \
+    libinput \
+    libusb
+
+ARG USER_NAME=dev
+ARG USER_UID=1369002843
+ARG USER_GID=1369000513
+ARG RENDER_GID=988
+ARG VIDEO_GID=984
+
+RUN set -eux; \
+    for gid in "${USER_GID}" "${RENDER_GID}" "${VIDEO_GID}"; do \
+        getent group "${gid}" >/dev/null || groupadd --gid "${gid}" "hostgrp${gid}"; \
+    done; \
+    useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USER_NAME}"; \
+    usermod --append --groups "${RENDER_GID},${VIDEO_GID}" "${USER_NAME}"; \
+    printf '%s ALL=(ALL) NOPASSWD: ALL\n' "${USER_NAME}" > "/etc/sudoers.d/${USER_NAME}"; \
+    chmod 0440 "/etc/sudoers.d/${USER_NAME}"
+
+FROM archlinux-nodeps AS archlinux-withdeps
 
 RUN pacman -Suy --noconfirm \
     sdl3

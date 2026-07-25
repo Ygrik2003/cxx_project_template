@@ -1,0 +1,89 @@
+name: Dev container build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} · ${{ matrix.compiler }} · ${{ matrix.deps }} · ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # Needed to pull/push the pre-built dev container image from/to GHCR.
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Flavors. `platform` + `compiler` spell the CMake preset name
+        # (<compiler>-<platform>), `deps` spells the Dockerfile stage
+        # (archlinux-<deps>): withdeps takes SDL3 from pacman, nodeps has CPM
+        # build it from source.
+        platform: [linux]
+        compiler: [clang, gcc]
+        deps: [withdeps, nodeps]
+        build_type: [Debug, Release]
+
+        # Room for the other platforms. Windows and Android are cross-compiled
+        # from the same Linux container, so they only need a toolchain file and
+        # a matching `cmake/toolchains/<compiler>-<platform>.cmake` preset:
+        #
+        # include:
+        #   - { platform: windows, compiler: clang, deps: nodeps, build_type: RelWithDebInfo }
+        #   - { platform: android, compiler: clang, deps: nodeps, build_type: Release }
+        #
+        # macOS cannot reuse this job at all — a Linux dev container does not run
+        # on a macos runner, so it needs a separate, non-containerized job with
+        # its own toolchain setup.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR image names must be lowercase; the owner part of the repo isn't.
+      - name: Resolve dev container image name
+        id: image
+        run: |
+          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}/devcontainer" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Only the nodeps flavor downloads anything; harmless for withdeps.
+      - name: Cache CPM sources
+        uses: actions/cache@v4
+        with:
+          path: .cpm-cache
+          key: cpm-${{ matrix.deps }}-${{ hashFiles('external/CMakeLists.txt') }}
+          restore-keys: cpm-${{ matrix.deps }}-
+
+      - name: Configure and build in dev container
+        uses: devcontainers/ci@v0.3
+        env:
+          # Read by ${localEnv:...} in the CI devcontainer.json.
+          TLT_DEVCONTAINER_TARGET: archlinux-${{ matrix.deps }}
+        with:
+          configFile: .devcontainer/ci/devcontainer.json
+          # One cached image per dependency flavor; both compilers live in it.
+          imageName: ${{ steps.image.outputs.name }}
+          imageTag: ${{ matrix.deps }}
+          cacheFrom: ${{ steps.image.outputs.name }}:${{ matrix.deps }}
+          # Refresh the cached image only from main; PRs build against it read-only.
+          push: ${{ github.event_name == 'push' && 'filter' || 'never' }}
+          refFilterForPush: refs/heads/main
+          runCmd: |
+            set -eux
+            cmake --preset ${{ matrix.compiler }}-${{ matrix.platform }}
+            cmake --build .build/${{ matrix.compiler }}-${{ matrix.platform }} --config ${{ matrix.build_type }}
