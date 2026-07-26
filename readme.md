@@ -80,3 +80,114 @@ To use the x11 backend, pick one:
 For headless or SSH use, drop the wayland mount and rely on x11 forwarding: keep
 the `/tmp/.X11-unix` mount, set `DISPLAY`, and export `SDL_VIDEODRIVER=x11` —
 this path does provide an `.Xauthority` cookie, so root works there.
+
+## CI
+
+[.github/workflows/devcontainer-build.yml](.github/workflows/devcontainer-build.yml)
+builds the project on push/PR to `main` (and via *Run workflow*) using
+[devcontainers/ci](https://github.com/devcontainers/ci), so CI compiles inside
+the very same image as local development — one toolchain definition,
+[docker/Dockerfile.ArchLinux](docker/Dockerfile.ArchLinux), instead of a
+parallel `apt install` list in the workflow.
+
+### Flavors
+
+| Axis | Values | Maps to |
+| --- | --- | --- |
+| `platform` | `linux` | second half of the preset name |
+| `compiler` | `clang`, `gcc` | first half of the preset name |
+| `deps` | `withdeps`, `nodeps` | Dockerfile stage `archlinux-<deps>` |
+| `build_type` | `Debug`, `Release` | `--config` of the multi-config build |
+
+`platform` + `compiler` are exactly the preset naming scheme
+(`<compiler>-<platform>` in [CMakePresets.json](CMakePresets.json)), so adding a
+platform means adding a toolchain file and a preset, then one matrix entry — the
+workflow needs no other change. Windows and Android cross-compile from the same
+Linux container and are sketched as commented `include:` entries. macOS is the
+exception: a Linux dev container does not run on a macos runner, so it needs a
+separate non-containerized job.
+
+`deps` selects where SDL3 comes from: `withdeps` uses the pacman package,
+`nodeps` has CPM build it from source (`CPM_USE_LOCAL_PACKAGES` finds nothing
+there). That is why the CI config keeps `${localEnv:TLT_DEVCONTAINER_TARGET}`
+just like the local one — the workflow sets it per matrix entry.
+
+### Pipeline
+
+Two stages, so the image is built once instead of once per build:
+
+1. `image` — [devcontainers/ci](https://github.com/devcontainers/ci) builds the
+   dev container and publishes it to GHCR as
+   `ghcr.io/<owner>/<repo>/devcontainer:<tag>-<deps>`. `runCmd` is deliberately
+   omitted, which turns the action into a pure prebuild step. One job per
+   dependency flavor; both compilers live inside each image.
+2. `build` — the matrix of actual builds, running *inside* that published image
+   via `jobs.<id>.container`. No devcontainer tooling on this stage: GitHub
+   pulls the image and runs the steps in it, so the steps are plain `cmake`
+   invocations.
+
+Tags are `<ref>-archlinux-<deps>`, where `<ref>` is `main` for pushes and
+`pr-<number>` for pull requests — so a PR touching the Dockerfile cannot poison
+the image `main` builds against. Each build reuses `main-archlinux-<deps>` as
+its layer cache (`cacheFrom`), so a PR that does not touch the Dockerfile pays
+almost nothing; a fresh repository has no cache and simply builds from scratch.
+
+The flavor half of the tag is the Dockerfile stage verbatim, which is what lets
+a local checkout name the image with nothing but `TLT_DEVCONTAINER_TARGET` (see
+below).
+
+PR tags are deleted by
+[.github/workflows/devcontainer-cleanup.yml](.github/workflows/devcontainer-cleanup.yml)
+when the pull request closes; its `workflow_dispatch` trigger takes a PR number
+for tags left behind by a run that died early. It deletes a package version only
+when *every* tag on it belongs to that PR — an image identical to main's shares
+its digest, and therefore its version, and a blind delete would take main's tag
+down with it.
+
+`containerEnv` from `devcontainer.json` does **not** apply to stage 2 (GitHub
+does not read that file), so `CPM_SOURCE_CACHE` is set again in the job `env`;
+CPM downloads are cached via `actions/cache` → `.cpm-cache/`.
+
+Stage 1 needs `packages: write`, stage 2 only `packages: read`. **Pull requests
+from forks will fail here**: their `GITHUB_TOKEN` cannot push to GHCR, so there
+is no image for stage 2. If this template ever takes fork PRs, that case needs a
+fallback that builds and runs in one job with `push: never`.
+
+### Using the CI image locally
+
+[.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) points
+`build.cacheFrom` at `main-${localEnv:TLT_DEVCONTAINER_TARGET}`, so opening the
+container pulls the image CI published for that stage and reuses its layers
+instead of running `pacman` locally. The Dockerfile stays the source of truth —
+this only replaces the *work*, not the definition — and any miss (offline, not
+logged in, locally edited Dockerfile) just falls back to a normal local build.
+
+While the package is private, docker needs credentials for the pull:
+
+```sh
+# classic PAT with read:packages
+echo "$GHCR_TOKEN" | docker login ghcr.io -u <your-github-user> --password-stdin
+```
+
+Making the package public in *Packages → Package settings* removes that step.
+To warm the cache up front, or to inspect the exact image CI used:
+
+```sh
+docker pull ghcr.io/ygrik2003/cxx_project_template/devcontainer:main-archlinux-withdeps
+```
+
+Layer reuse assumes an unmodified Dockerfile *and* the `ARG` defaults CI built
+with — a different `USER_UID`/`USER_GID` invalidates everything from `useradd`
+onward, though the pacman layers above it still hit.
+
+### Other notes
+
+The build is the same two commands you would run by hand:
+
+```sh
+cmake --preset clang-linux
+cmake --build .build/clang-linux --config Debug
+```
+
+The `example` binary is not executed in CI — it opens an SDL3 window and the
+runner has no display.

@@ -8,7 +8,7 @@
 	// flavor (archlinux-withdeps / archlinux-nodeps).
 	"name": "Arch Linux CI",
 	"build": {
-		"dockerfile": "../../docker/Dockerfile.ArchLinux",
+		"dockerfile": "../Dockerfile",
 		"context": "../..",
 		"target": "${localEnv:TLT_DEVCONTAINER_TARGET}"
 	},

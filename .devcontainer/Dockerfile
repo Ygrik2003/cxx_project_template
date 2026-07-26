@@ -1,6 +1,3 @@
-# archlinux-nodeps carries the full GUI/GPU runtime as well: in this target SDL3
-# is compiled from source by CPM, so it needs the very same libraries (and their
-# headers, which Arch ships in the main packages) that the sdl3 package pulls in.
 FROM archlinux:latest AS archlinux-nodeps
 
 # Toolchain
@@ -62,3 +59,4 @@ FROM archlinux-nodeps AS archlinux-withdeps
 
 RUN pacman -Suy --noconfirm \
     sdl3
+
