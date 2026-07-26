@@ -13,10 +13,8 @@ RUN pacman -Suy --noconfirm \
     libc++ \
     git \
     sudo \
-    pkgconf
-
-# GUI/GPU runtime for SDL3: wayland, x11, GL/Vulkan, audio, input
-RUN pacman -Suy --noconfirm \
+    pkgconf \
+    # GUI/GPU runtime for SDL3: wayland, x11, GL/Vulkan, audio, input
     wayland \
     wayland-protocols \
     libxkbcommon \
@@ -42,6 +40,9 @@ RUN pacman -Suy --noconfirm \
     libinput \
     libusb
 
+# HACK: On archlinux in /usr/lib/gcc/x86_64-pc-linux-gnu/16/libstdc++.modules.json wrong path to std.cc and std.compat.cc
+RUN sed -i 's#\.\./include/c++/16/#/usr/include/c++/16/#g' /usr/lib/gcc/x86_64-pc-linux-gnu/16/libstdc++.modules.json
+
 ARG USER_NAME=dev
 ARG USER_UID=1369002843
 ARG USER_GID=1369000513
@@ -50,7 +51,7 @@ ARG VIDEO_GID=984
 
 RUN set -eux; \
     for gid in "${USER_GID}" "${RENDER_GID}" "${VIDEO_GID}"; do \
-        getent group "${gid}" >/dev/null || groupadd --gid "${gid}" "hostgrp${gid}"; \
+    getent group "${gid}" >/dev/null || groupadd --gid "${gid}" "hostgrp${gid}"; \
     done; \
     useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USER_NAME}"; \
     usermod --append --groups "${RENDER_GID},${VIDEO_GID}" "${USER_NAME}"; \
