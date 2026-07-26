@@ -66,9 +66,12 @@ jobs:
         with:
           configFile: .devcontainer/ci/devcontainer.json
           imageName: ${{ needs.meta.outputs.image }}
-          imageTag: ${{ needs.meta.outputs.tag }}-${{ matrix.deps }}
+          # The flavor part of the tag is the Dockerfile stage verbatim, so a
+          # local checkout can point `cacheFrom` at it with nothing but
+          # TLT_DEVCONTAINER_TARGET. See .devcontainer/devcontainer.json.
+          imageTag: ${{ needs.meta.outputs.tag }}-archlinux-${{ matrix.deps }}
           # Reuse main's layers; a miss just means a full build.
-          cacheFrom: ${{ needs.meta.outputs.image }}:main-${{ matrix.deps }}
+          cacheFrom: ${{ needs.meta.outputs.image }}:main-archlinux-${{ matrix.deps }}
           push: always
 
   # Stage 2: the actual builds, run directly inside the published image. No
@@ -83,7 +86,7 @@ jobs:
       packages: read
 
     container:
-      image: ${{ needs.meta.outputs.image }}:${{ needs.meta.outputs.tag }}-${{ matrix.deps }}
+      image: ${{ needs.meta.outputs.image }}:${{ needs.meta.outputs.tag }}-archlinux-${{ matrix.deps }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,60 @@
+name: Dev container cleanup
+
+# Deletes the throwaway `pr-<N>-*` image tags published by the build workflow.
+# Runs when a pull request is closed (merged or not); the manual trigger is for
+# tags left behind by a run that failed before it got here.
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number whose image tags should be deleted"
+        required: true
+        type: string
+
+jobs:
+  delete-pr-tags:
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete pr-<N> image versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || inputs.pr_number }}
+          OWNER: ${{ github.repository_owner }}
+          # `users` and `orgs` are separate REST namespaces for packages.
+          OWNER_KIND: ${{ github.event.repository.owner.type == 'Organization' && 'orgs' || 'users' }}
+        run: |
+          set -euo pipefail
+
+          package="${GITHUB_REPOSITORY#*/}/devcontainer"
+          # Path segment, so the slash has to be escaped.
+          package_path="${package//\//%2F}"
+          base="/${OWNER_KIND}/${OWNER}/packages/container/${package_path}"
+
+          echo "Looking for pr-${PR}-* tags in ${package}"
+
+          # A version is deleted only when *every* tag on it belongs to this PR.
+          # An image identical to main's shares the same digest, and therefore
+          # the same version, and deleting it would take main's tag with it.
+          gh api --paginate "${base}/versions" \
+            --jq '.[] | {id, tags: .metadata.container.tags}' \
+          | while read -r version; do
+              id=$(jq -r '.id' <<<"$version")
+              tags=$(jq -r '.tags[]' <<<"$version")
+
+              [ -n "$tags" ] || continue
+              grep -q "^pr-${PR}-" <<<"$tags" || continue
+
+              if grep -qv "^pr-${PR}-" <<<"$tags"; then
+                echo "skip ${id}: shared with other tags: $(tr '\n' ' ' <<<"$tags")"
+                continue
+              fi
+
+              echo "delete ${id}: $(tr '\n' ' ' <<<"$tags")"
+              gh api --method DELETE "${base}/versions/${id}"
+            done

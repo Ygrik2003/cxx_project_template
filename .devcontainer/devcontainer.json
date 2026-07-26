@@ -2,7 +2,8 @@
 	"name": "Arch Linux Dev Container",
 	"build": {
 		"dockerfile": "../docker/Dockerfile.ArchLinux",
-		"target": "${localEnv:TLT_DEVCONTAINER_TARGET}"
+		"target": "${localEnv:TLT_DEVCONTAINER_TARGET}",
+		// "cacheFrom": "ghcr.io/ygrik2003/cxx_project_template/devcontainer:main-${localEnv:TLT_DEVCONTAINER_TARGET}"
 	},
 	"customizations": {
 		"vscode": {
