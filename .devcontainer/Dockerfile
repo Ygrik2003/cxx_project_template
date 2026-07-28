@@ -60,3 +60,24 @@ FROM archlinux-nodeps AS archlinux-withdeps
 RUN pacman -Suy --noconfirm \
     sdl3
 
+
+FROM gradle:jdk26-corretto-al2023 AS android-nodeps
+# TODO NOT TEST
+RUN mkdir "$TLT_ANDROID_HOME" .android \
+    && cd "$TLT_ANDROID_HOME" \
+    && curl -o sdk.zip $TLT_SDK_URL \
+    && unzip sdk.zip \
+    && rm sdk.zip \
+    # В следующих строчках мы создаем папку и текстовые файлы 
+    # с лицензиями. На оф. сайте Android написано что мы 
+    # можем копировать эти файлы с машин где вручную эти 
+    # лицензии подтвердили и что автоматически 
+    # их сгенерировать нельзя
+    && mkdir "$TLT_ANDROID_HOME/licenses" || true \
+    && echo "24333f8a63b6825ea9c5514f83c2829b004d1" > "$TLT_ANDROID_HOME/licenses/android-sdk-license" \
+    && echo "84831b9409646a918e30573bab4c9c91346d8" > "$TLT_ANDROID_HOME/licenses/android-sdk-preview-license" \   
+    # Запускаем обновление SDK и установку build-tools, platform-tools
+    && $TLT_ANDROID_HOME/tools/bin/sdkmanager --update \
+    && $TLT_ANDROID_HOME/tools/bin/sdkmanager "build-tools;${TLT_ANDROID_BUILD_TOOLS_VERSION}" \
+    "platforms;android-${TLT_ANDROID_VERSION}" \
+    "platform-tools"

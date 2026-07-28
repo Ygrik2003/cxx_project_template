@@ -13,8 +13,6 @@
 			]
 		}
 	},
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
 	"runArgs": [
 		// Hardware GL/Vulkan via the host DRM devices.
 		"--device=/dev/dri",
@@ -33,8 +31,6 @@
 		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
 		"DISPLAY": "${localEnv:DISPLAY}",
 		"XDG_SESSION_TYPE": "wayland"
-		// SDL_VIDEODRIVER is deliberately unset: SDL autodetects wayland first
-		// and falls back to x11. Override per-run to force a backend.
 	},
 	"remoteUser": "dev",
 	"postCreateCommand": "sudo chown dev /tmp/xdg-runtime && sudo chmod 700 /tmp/xdg-runtime"

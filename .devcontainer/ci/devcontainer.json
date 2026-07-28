@@ -1,23 +1,9 @@
 {
-	// CI variant of ../devcontainer.json: same image, but without anything that
-	// depends on the developer's host session. No GUI/GPU passthrough (no
-	// /dev/dri, no wayland or X11 sockets) and no host uid to mirror.
-	//
-	// The Dockerfile stage still comes from TLT_DEVCONTAINER_TARGET, exactly as
-	// locally — the workflow sets it per matrix entry to pick the dependency
-	// flavor (archlinux-withdeps / archlinux-nodeps).
 	"name": "Arch Linux CI",
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"context": "../..",
 		"target": "${localEnv:TLT_DEVCONTAINER_TARGET}"
 	},
-	// The GitHub runner user is not the `dev` user baked into the image, and the
-	// workspace is bind-mounted with the runner's ownership, so build as root.
-	"remoteUser": "root",
-	"containerEnv": {
-		// Keeps CPM downloads (anything not satisfied by a pacman package) inside
-		// the bind-mounted workspace, so the workflow can cache them between runs.
-		"CPM_SOURCE_CACHE": "${containerWorkspaceFolder}/.cpm-cache"
-	}
+	"remoteUser": "root"
 }
